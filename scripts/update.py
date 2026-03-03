@@ -187,11 +187,33 @@ def call_gemini(prompt, api_key):
 
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            result = json.loads(resp.read().decode())
+            raw_response = resp.read().decode()
+            print(f"  [DEBUG] Gemini API Status: {resp.status}")
+            print(f"  [DEBUG] Raw API response length: {len(raw_response)} chars")
+
+            result = json.loads(raw_response)
+
+            # Check if response has expected structure
+            if "candidates" not in result:
+                print(f"  [ERROR] No 'candidates' in response: {raw_response[:500]}")
+                return None
+            if not result["candidates"]:
+                print(f"  [ERROR] Empty candidates array: {raw_response[:500]}")
+                return None
+
             text = result["candidates"][0]["content"]["parts"][0]["text"]
+            print(f"  [DEBUG] Extracted text length: {len(text)} chars")
             return text
+    except urllib.error.HTTPError as e:
+        print(f"  [ERROR] HTTP {e.code}: {e.reason}")
+        try:
+            error_body = e.read().decode()
+            print(f"  [ERROR] Response body: {error_body[:500]}")
+        except:
+            pass
+        return None
     except Exception as e:
-        print(f"  [ERROR] Gemini API call failed: {e}")
+        print(f"  [ERROR] Gemini API call failed: {type(e).__name__}: {e}")
         return None
 
 
@@ -247,20 +269,29 @@ RULES:
 
     response = call_gemini(prompt, api_key)
     if not response:
+        print("  [ERROR] No response from Gemini API")
         return [], []
+
+    print(f"  [DEBUG] Gemini response preview: {response[:300]}...")
 
     try:
         # Clean response
         cleaned = response.strip()
         if cleaned.startswith("```"):
+            print("  [DEBUG] Removing markdown code fences")
             cleaned = re.sub(r"^```(?:json)?\n?", "", cleaned)
             cleaned = re.sub(r"\n?```$", "", cleaned)
 
         data = json.loads(cleaned)
+        news_count = len(data.get("news", []))
+        strikes_count = len(data.get("strikes", []))
+        print(f"  [DEBUG] Parsed JSON successfully: {news_count} news, {strikes_count} strikes")
         return data.get("news", []), data.get("strikes", [])
     except json.JSONDecodeError as e:
-        print(f"  [ERROR] Failed to parse Gemini response: {e}")
-        print(f"  Response preview: {response[:200]}")
+        print(f"  [ERROR] Failed to parse Gemini response as JSON")
+        print(f"  [ERROR] JSONDecodeError: {e}")
+        print(f"  [ERROR] Full response ({len(response)} chars):")
+        print(f"  {response[:1000]}")
         return [], []
 
 
