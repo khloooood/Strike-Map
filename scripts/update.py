@@ -355,13 +355,14 @@ def update_html(new_news, new_strikes):
     if new_news:
         news_js_items = []
         for n in new_news:
-            headline = n.get("headline", "").replace("'", "\\'")
-            summary = n.get("summary", "").replace("'", "\\'")
-            source = n.get("source", "").replace("'", "\\'")
+            # Properly escape for JavaScript by replacing quotes and backslashes
+            headline = json.dumps(n.get("headline", ""))[1:-1]  # Remove surrounding quotes
+            summary = json.dumps(n.get("summary", ""))[1:-1]
+            source = json.dumps(n.get("source", ""))[1:-1]
             cat = n.get("cat", "military")
             sev = n.get("sev", "medium")
             time_str = n.get("time", now.isoformat() + "Z")
-            url = n.get("url", "#").replace("'", "\\'")
+            url = json.dumps(n.get("url", "#"))[1:-1]
 
             news_js_items.append(
                 f"  {{headline:'{headline}',summary:'{summary}',"
@@ -386,14 +387,15 @@ def update_html(new_news, new_strikes):
     if new_strikes:
         strike_js_items = []
         for s in new_strikes:
-            t = s.get("t", now.isoformat() + "Z").replace("'", "\\'")
-            f_val = s.get("f", "Unknown").replace("'", "\\'")
-            to = s.get("to", "Unknown").replace("'", "\\'")
-            ty = s.get("ty", "Unknown").replace("'", "\\'")
-            status = s.get("s", "hit").replace("'", "\\'")
-            label = s.get("l", "Strike").replace("'", "\\'")
+            # Properly escape for JavaScript
+            t = json.dumps(s.get("t", now.isoformat() + "Z"))[1:-1]
+            f_val = json.dumps(s.get("f", "Unknown"))[1:-1]
+            to = json.dumps(s.get("to", "Unknown"))[1:-1]
+            ty = json.dumps(s.get("ty", "Unknown"))[1:-1]
+            status = json.dumps(s.get("s", "hit"))[1:-1]
+            label = json.dumps(s.get("l", "Strike"))[1:-1]
             w = s.get("w", 5)
-            a = s.get("a", "Unknown").replace("'", "\\'")
+            a = json.dumps(s.get("a", "Unknown"))[1:-1]
 
             strike_js_items.append(
                 f"  {{t:'{t}',f:'{f_val}',to:'{to}',ty:'{ty}',"
